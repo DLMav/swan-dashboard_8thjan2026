@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swan AI Clone - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .sidebar { transition: width 0.3s; }
+        .lead-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .tab-active { border-bottom: 2px solid #e94560; color: #e94560; }
+        .score-ring { 
+            background: conic-gradient(#e94560 calc(var(--score) * 1%), #e5e7eb calc(var(--score) * 1%));
+            border-radius: 50%;
+        }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .toast { animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app" class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="sidebar w-64 bg-slate-900 text-white flex flex-col">
+            <div class="p-4 border-b border-slate-700">
+                <h1 class="text-xl font-bold flex items-center gap-2">
+                    🦢 <span>Swan AI <span class="text-pink-500">Clone</span></span>
+                </h1>
+                <p class="text-xs text-slate-400 mt-1">Lead Intelligence Platform</p>
+            </div>
+            
+            <nav class="flex-1 p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <button onclick="showPage('dashboard')" class="nav-item w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 transition" data-page="dashboard">
+                            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                            Dashboard
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showPage('visitors')" class="nav-item w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 transition" data-page="visitors">
+                            <i data-lucide="eye" class="w-5 h-5 text-cyan-400"></i>
+                            All Visitors
+                            <span id="visitor-count" class="ml-auto text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full">0</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showPage('leads')" class="nav-item w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 transition" data-page="leads">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                            Enriched Leads
+                            <span id="lead-count" class="ml-auto text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">0</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showPage('hot')" class="nav-item w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 transition" data-page="hot">
+                            <i data-lucide="flame" class="w-5 h-5 text-red-500"></i>
+                            Hot Leads
+                            <span id="hot-count" class="ml-auto text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">0</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showPage('settings')" class="nav-item w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 transition" data-page="settings">
+                            <i data-lucide="settings" class="w-5 h-5"></i>
+                            API Settings
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="showPage('icp')" class="nav-item w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-slate-800 transition" data-page="icp">
+                            <i data-lucide="target" class="w-5 h-5"></i>
+                            ICP Config
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="p-4 border-t border-slate-700">
+                <div class="flex items-center gap-2 text-sm text-slate-400">
+                    <span class="w-2 h-2 bg-green-500 rounded-full pulse"></span>
+                    Backend: <span id="backend-status">Checking...</span>
+                </div>
+                <a href="http://localhost:3001" target="_blank" class="mt-2 block text-xs text-pink-400 hover:text-pink-300">
+                    → Open Demo Website
+                </a>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="flex-1 overflow-auto">
+            <!-- Header -->
+            <header class="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+                <div>
+                    <h2 id="page-title" class="text-xl font-semibold text-gray-800">Dashboard</h2>
+                    <p id="page-subtitle" class="text-sm text-gray-500">Overview of your lead intelligence</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="refreshData()" class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Refresh
+                    </button>
+                    <button onclick="testVisitor()" class="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        Test Visitor
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Page Content -->
+            <div id="page-content" class="p-6">
+                <!-- Content will be loaded here -->
+            </div>
+        </main>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+    
+    <!-- Lead Detail Modal -->
+    <div id="lead-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
+            <div id="lead-modal-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // API Base URL - Change this to your deployed backend URL
+        // For Railway: https://your-app.up.railway.app
+        // For Render: https://your-app.onrender.com
+        const API_URL = window.SWAN_API_URL || 'https://web-production-d4a1c.up.railway.app';
+        
+        // State
+        let currentPage = 'dashboard';
+        let leads = [];
+        let visitors = [];
+        let stats = { total_visitors: 0, business_visitors: 0, total_leads: 0, hot_leads: 0, warm_leads: 0, cold_leads: 0, avg_score: 0 };
+        let settings = {};
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            lucide.createIcons();
+            await checkBackend();
+            await loadSettings();
+            await refreshData();
+            showPage('dashboard');
+            
+            // Auto-refresh every 10 seconds
+            setInterval(refreshData, 10000);
+        });
+        
+        // Check backend status
+        async function checkBackend() {
+            try {
+                const res = await fetch(`${API_URL}/health`);
+                if (res.ok) {
+                    document.getElementById('backend-status').textContent = 'Connected';
+                    document.getElementById('backend-status').className = 'text-green-400';
+                }
+            } catch (e) {
+                document.getElementById('backend-status').textContent = 'Offline';
+                document.getElementById('backend-status').className = 'text-red-400';
+            }
+        }
+        
+        // Load settings
+        async function loadSettings() {
+            try {
+                const res = await fetch(`${API_URL}/api/settings`);
+                settings = await res.json();
+            } catch (e) {
+                console.error('Failed to load settings:', e);
+            }
+        }
+        
+        // Refresh data
+        async function refreshData() {
+            try {
+                // Get stats
+                const statsRes = await fetch(`${API_URL}/api/stats`);
+                stats = await statsRes.json();
+                
+                // Get visitors
+                const visitorsRes = await fetch(`${API_URL}/api/visitors?limit=100`);
+                const visitorsData = await visitorsRes.json();
+                visitors = visitorsData.visitors || [];
+                
+                // Get leads
+                const leadsRes = await fetch(`${API_URL}/api/leads?limit=100`);
+                const data = await leadsRes.json();
+                leads = data.leads || [];
+                
+                // Update counts in nav
+                document.getElementById('visitor-count').textContent = stats.total_visitors || 0;
+                document.getElementById('lead-count').textContent = stats.total_leads || 0;
+                document.getElementById('hot-count').textContent = stats.hot_leads || 0;
+                
+                // Update current page
+                if (currentPage === 'dashboard') renderDashboard();
+                else if (currentPage === 'visitors') renderVisitors();
+                else if (currentPage === 'leads') renderLeads();
+                else if (currentPage === 'hot') renderLeads('hot');
+            } catch (e) {
+                console.error('Failed to refresh data:', e);
+            }
+        }
+        
+        // Test visitor
+        async function testVisitor() {
+            const domain = prompt('Enter test domain:', 'notion.so');
+            if (!domain) return;
+            
+            showToast('Processing test visitor...', 'info');
+            
+            try {
+                const res = await fetch(`${API_URL}/api/test-visitor?domain=${domain}`, { method: 'POST' });
+                const data = await res.json();
+                showToast(`Lead created: ${data.company?.name || domain} (Score: ${data.scoring?.icp_score || 'N/A'})`, 'success');
+                await refreshData();
+            } catch (e) {
+                showToast('Failed to create test visitor', 'error');
+            }
+        }
+        
+        // Show page
+        function showPage(page) {
+            currentPage = page;
+            
+            // Update nav
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('bg-slate-800');
+                if (item.dataset.page === page) item.classList.add('bg-slate-800');
+            });
+            
+            // Render page
+            switch (page) {
+                case 'dashboard': renderDashboard(); break;
+                case 'visitors': renderVisitors(); break;
+                case 'leads': renderLeads(); break;
+                case 'hot': renderLeads('hot'); break;
+                case 'settings': renderSettings(); break;
+                case 'icp': renderICP(); break;
+            }
+            
+            lucide.createIcons();
+        }
+        
+        // Get country flag emoji
+        function getFlag(countryCode) {
+            if (!countryCode || countryCode === 'XX' || countryCode === 'Unknown') return '🌍';
+            return countryCode.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt()));
+        }
+        
+        // Render Visitors
+        function renderVisitors() {
+            document.getElementById('page-title').textContent = 'All Visitors';
+            document.getElementById('page-subtitle').textContent = 'Every visitor tracked with IP geolocation data';
+            
+            if (visitors.length === 0) {
+                document.getElementById('page-content').innerHTML = `
+                    <div class="bg-white rounded-xl p-12 text-center shadow-sm border">
+                        <i data-lucide="eye" class="w-16 h-16 text-gray-300 mx-auto mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-600 mb-2">No visitors yet</h3>
+                        <p class="text-gray-400 mb-4">Visitors will appear here when they browse your demo website</p>
+                        <a href="http://localhost:3001" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600">
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                            Open Demo Website
+                        </a>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+            
+            document.getElementById('page-content').innerHTML = `
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="px-6 py-4 border-b flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-800">All Visitors (${visitors.length})</h3>
+                        <div class="flex gap-2 text-sm">
+                            <span class="px-2 py-1 bg-cyan-100 text-cyan-700 rounded">Total: ${stats.total_visitors}</span>
+                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded">Business: ${stats.business_visitors}</span>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 text-left text-sm text-gray-500">
+                                <tr>
+                                    <th class="px-6 py-3 font-medium">IP Address</th>
+                                    <th class="px-6 py-3 font-medium">Location</th>
+                                    <th class="px-6 py-3 font-medium">Organization</th>
+                                    <th class="px-6 py-3 font-medium">Type</th>
+                                    <th class="px-6 py-3 font-medium">Pages</th>
+                                    <th class="px-6 py-3 font-medium">Duration</th>
+                                    <th class="px-6 py-3 font-medium">Status</th>
+                                    <th class="px-6 py-3 font-medium">Time</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                ${visitors.map(v => `
+                                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="showVisitorDetail('${v.session_id}')">
+                                        <td class="px-6 py-4">
+                                            <span class="font-mono text-sm">${v.ip_address || 'Unknown'}</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xl">${getFlag(v.country_code)}</span>
+                                                <div>
+                                                    <p class="font-medium text-gray-800">${v.city || 'Unknown'}</p>
+                                                    <p class="text-xs text-gray-500">${v.region || ''}, ${v.country || 'Unknown'}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="${v.is_business ? 'text-green-600 font-medium' : 'text-gray-500'}">${v.org || 'Unknown'}</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="px-2 py-1 rounded text-xs font-medium ${v.is_business ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">
+                                                ${v.is_business ? '🏢 Business' : '👤 Personal'}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="text-gray-600">${(v.pages_viewed || []).length} pages</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="text-gray-600">${formatDuration(v.visit_duration)}</span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            ${v.enriched 
+                                                ? '<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">✓ Enriched</span>'
+                                                : '<span class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">Pending</span>'
+                                            }
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-500">
+                                            ${new Date(v.created_at).toLocaleString()}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+        
+        // Format duration
+        function formatDuration(seconds) {
+            if (!seconds) return '0s';
+            if (seconds < 60) return seconds + 's';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return mins + 'm ' + secs + 's';
+        }
+        
+        // Show visitor detail modal
+        function showVisitorDetail(sessionId) {
+            const v = visitors.find(x => x.session_id === sessionId);
+            if (!v) return;
+            
+            document.getElementById('lead-modal-content').innerHTML = `
+                <div class="p-6 border-b">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-gray-800">Visitor Details</h3>
+                        <button onclick="closeModal()" class="p-2 hover:bg-gray-100 rounded-lg">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6 grid grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                            <i data-lucide="globe" class="w-4 h-4 text-cyan-500"></i>
+                            IP Information
+                        </h4>
+                        <div class="space-y-2 text-sm">
+                            <p><span class="text-gray-500">IP Address:</span> <span class="font-mono">${v.ip_address || 'Unknown'}</span></p>
+                            <p><span class="text-gray-500">Location:</span> ${getFlag(v.country_code)} ${v.city || 'Unknown'}, ${v.region || ''}, ${v.country || 'Unknown'}</p>
+                            <p><span class="text-gray-500">Organization:</span> <span class="${v.is_business ? 'text-green-600 font-medium' : ''}">${v.org || 'Unknown'}</span></p>
+                            <p><span class="text-gray-500">Hostname:</span> ${v.hostname || 'N/A'}</p>
+                            <p><span class="text-gray-500">Type:</span> ${v.is_business ? '🏢 Business IP' : '👤 Personal/Residential'}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                            <i data-lucide="activity" class="w-4 h-4 text-pink-500"></i>
+                            Session Info
+                        </h4>
+                        <div class="space-y-2 text-sm">
+                            <p><span class="text-gray-500">Session ID:</span> <span class="font-mono text-xs">${v.session_id}</span></p>
+                            <p><span class="text-gray-500">Duration:</span> ${formatDuration(v.visit_duration)}</p>
+                            <p><span class="text-gray-500">Pages Viewed:</span> ${(v.pages_viewed || []).length}</p>
+                            <p><span class="text-gray-500">Referrer:</span> ${v.referrer || 'Direct'}</p>
+                            <p><span class="text-gray-500">First Visit:</span> ${new Date(v.created_at).toLocaleString()}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 border-t">
+                    <h4 class="font-semibold text-gray-700 mb-3">Pages Viewed</h4>
+                    <div class="space-y-2">
+                        ${(v.pages_viewed || []).map((p, i) => `
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs text-gray-500">${i + 1}</span>
+                                <span class="text-pink-600">${p.url || p}</span>
+                                ${p.title ? `<span class="text-gray-400">- ${p.title}</span>` : ''}
+                            </div>
+                        `).join('') || '<p class="text-gray-400">No pages recorded</p>'}
+                    </div>
+                </div>
+                <div class="p-6 border-t bg-gray-50 flex justify-end">
+                    <button onclick="closeModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Close</button>
+                </div>
+            `;
+            document.getElementById('lead-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        
+        // Render Dashboard
+        function renderDashboard() {
+            document.getElementById('page-title').textContent = 'Dashboard';
+            document.getElementById('page-subtitle').textContent = 'Overview of your lead intelligence';
+            
+            const recentLeads = leads.slice(0, 5);
+            const recentVisitors = visitors.slice(0, 5);
+            
+            document.getElementById('page-content').innerHTML = `
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                    <div class="bg-white rounded-xl p-4 shadow-sm border cursor-pointer hover:shadow-md transition" onclick="showPage('visitors')">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Total Visitors</p>
+                                <p class="text-2xl font-bold text-cyan-600">${stats.total_visitors || 0}</p>
+                            </div>
+                            <div class="w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="eye" class="w-6 h-6 text-cyan-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm border">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Business IPs</p>
+                                <p class="text-2xl font-bold text-green-600">${stats.business_visitors || 0}</p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="building" class="w-6 h-6 text-green-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm border cursor-pointer hover:shadow-md transition" onclick="showPage('leads')">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Enriched Leads</p>
+                                <p class="text-2xl font-bold text-gray-800">${stats.total_leads}</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="users" class="w-6 h-6 text-blue-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm border cursor-pointer hover:shadow-md transition" onclick="showPage('hot')">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Hot Leads</p>
+                                <p class="text-2xl font-bold text-red-500">${stats.hot_leads}</p>
+                            </div>
+                            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="flame" class="w-6 h-6 text-red-500"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm border">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Warm Leads</p>
+                                <p class="text-2xl font-bold text-yellow-500">${stats.warm_leads}</p>
+                            </div>
+                            <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="thermometer" class="w-6 h-6 text-yellow-500"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm border">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Cold Leads</p>
+                                <p class="text-2xl font-bold text-blue-400">${stats.cold_leads}</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
+                                <i data-lucide="snowflake" class="w-6 h-6 text-blue-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm border">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-500">Avg Score</p>
+                                <p class="text-2xl font-bold text-gray-800">${stats.avg_score}</p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="bar-chart-2" class="w-6 h-6 text-purple-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Leads -->
+                <div class="bg-white rounded-xl shadow-sm border">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h3 class="font-semibold text-gray-800">Recent Leads</h3>
+                        <button onclick="showPage('leads')" class="text-sm text-pink-500 hover:text-pink-600">View All →</button>
+                    </div>
+                    <div class="divide-y">
+                        ${recentLeads.length === 0 ? `
+                            <div class="p-8 text-center text-gray-500">
+                                <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
+                                <p>No leads yet. Visit the demo website or click "Test Visitor" to generate leads.</p>
+                            </div>
+                        ` : recentLeads.map(lead => `
+                            <div class="p-4 hover:bg-gray-50 cursor-pointer transition" onclick="showLeadDetail('${lead.lead_id}')">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${getTierColor(lead.tier)}">
+                                            ${lead.icp_score || 0}
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-gray-800">${lead.company_name || 'Unknown Company'}</p>
+                                            <p class="text-sm text-gray-500">${lead.industry || 'Unknown'} • ${lead.employee_count || 0} employees</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="px-2 py-1 rounded-full text-xs font-medium ${getTierBadge(lead.tier)}">${(lead.tier || 'unknown').toUpperCase()}</span>
+                                        <p class="text-xs text-gray-400 mt-1">${formatDate(lead.created_at)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+        
+        // Render Leads
+        function renderLeads(filter = null) {
+            document.getElementById('page-title').textContent = filter === 'hot' ? 'Hot Leads 🔥' : 'All Leads';
+            document.getElementById('page-subtitle').textContent = filter === 'hot' ? 'High-priority leads ready for outreach' : 'All captured leads from your website';
+            
+            const filteredLeads = filter ? leads.filter(l => l.tier === filter) : leads;
+            
+            document.getElementById('page-content').innerHTML = `
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP Address</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Industry</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Size</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tier</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                <th class="px-4 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            ${filteredLeads.length === 0 ? `
+                                <tr>
+                                    <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                                        No leads found. Visit the demo website to generate leads.
+                                    </td>
+                                </tr>
+                            ` : filteredLeads.map(lead => `
+                                <tr class="hover:bg-gray-50 cursor-pointer" onclick="showLeadDetail('${lead.lead_id}')">
+                                    <td class="px-4 py-3">
+                                        <div class="font-medium text-gray-800">${lead.company_name || 'Unknown'}</div>
+                                        <div class="text-xs text-gray-500">${lead.domain || ''}</div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="font-mono text-sm text-gray-600">${lead.ip_address || 'N/A'}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">${lead.industry || 'Unknown'}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">${lead.employee_count || 0}</td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${getTierColor(lead.tier)}">
+                                                ${lead.icp_score || 0}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-1 rounded-full text-xs font-medium ${getTierBadge(lead.tier)}">${(lead.tier || 'unknown').toUpperCase()}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">${formatDate(lead.created_at)}</td>
+                                    <td class="px-4 py-3">
+                                        <button onclick="event.stopPropagation(); deleteLead('${lead.lead_id}')" class="text-red-500 hover:text-red-700">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+        
+        // Render Settings
+        function renderSettings() {
+            document.getElementById('page-title').textContent = 'API Settings';
+            document.getElementById('page-subtitle').textContent = 'Configure your API keys and integrations';
+            
+            document.getElementById('page-content').innerHTML = `
+                <div class="max-w-2xl space-y-6">
+                    <!-- IPInfo API -->
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
+                                <i data-lucide="globe" class="w-5 h-5 text-cyan-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800">IPInfo.io API</h3>
+                                <p class="text-sm text-gray-500">IP to Location/Company (50k free/month)</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <input type="text" id="ipinfo-key" placeholder="Enter IPInfo API Token" 
+                                value="${settings.ipinfo_api_key || ''}"
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+                            <div class="flex gap-2">
+                                <button onclick="testAPI('ipinfo')" class="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition flex items-center gap-2">
+                                    <i data-lucide="play" class="w-4 h-4"></i> Test API
+                                </button>
+                                <button onclick="saveAPI('ipinfo')" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2">
+                                    <i data-lucide="save" class="w-4 h-4"></i> Save
+                                </button>
+                            </div>
+                            <div id="ipinfo-result" class="text-sm"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Apollo API -->
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i data-lucide="building-2" class="w-5 h-5 text-blue-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800">Apollo.io API</h3>
+                                <p class="text-sm text-gray-500">Company enrichment (Free tier available)</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <input type="text" id="apollo-key" placeholder="Enter Apollo API Key" 
+                                value="${settings.apollo_api_key || ''}"
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+                            <div class="flex gap-2">
+                                <button onclick="testAPI('apollo')" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center gap-2">
+                                    <i data-lucide="play" class="w-4 h-4"></i> Test API
+                                </button>
+                                <button onclick="saveAPI('apollo')" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2">
+                                    <i data-lucide="save" class="w-4 h-4"></i> Save
+                                </button>
+                            </div>
+                            <div id="apollo-result" class="text-sm"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hunter API -->
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                                <i data-lucide="mail" class="w-5 h-5 text-orange-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800">Hunter.io API</h3>
+                                <p class="text-sm text-gray-500">Contact finding (25 free/month)</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <input type="text" id="hunter-key" placeholder="Enter Hunter.io API Key"
+                                value="${settings.hunter_api_key || ''}"
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+                            <div class="flex gap-2">
+                                <button onclick="testAPI('hunter')" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition flex items-center gap-2">
+                                    <i data-lucide="play" class="w-4 h-4"></i> Test API
+                                </button>
+                                <button onclick="saveAPI('hunter')" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2">
+                                    <i data-lucide="save" class="w-4 h-4"></i> Save
+                                </button>
+                            </div>
+                            <div id="hunter-result" class="text-sm"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- OpenAI API -->
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i data-lucide="brain" class="w-5 h-5 text-green-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800">OpenAI API</h3>
+                                <p class="text-sm text-gray-500">AI scoring & email drafting</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <input type="password" id="openai-key" placeholder="Enter OpenAI API Key (sk-...)"
+                                value="${settings.openai_api_key || ''}"
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+                            <div class="flex gap-2">
+                                <button onclick="testAPI('openai')" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2">
+                                    <i data-lucide="play" class="w-4 h-4"></i> Test API
+                                </button>
+                                <button onclick="saveAPI('openai')" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2">
+                                    <i data-lucide="save" class="w-4 h-4"></i> Save
+                                </button>
+                            </div>
+                            <div id="openai-result" class="text-sm"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Slack Webhook -->
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i data-lucide="message-square" class="w-5 h-5 text-purple-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800">Slack Webhook</h3>
+                                <p class="text-sm text-gray-500">Get alerts for hot leads (Optional)</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <input type="text" id="slack-webhook" placeholder="https://hooks.slack.com/services/..."
+                                value="${settings.slack_webhook_url === 'configured' ? '' : (settings.slack_webhook_url || '')}"
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
+                            <div class="flex gap-2">
+                                <button onclick="testAPI('slack')" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition flex items-center gap-2">
+                                    <i data-lucide="play" class="w-4 h-4"></i> Test
+                                </button>
+                                <button onclick="saveAPI('slack')" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center gap-2">
+                                    <i data-lucide="save" class="w-4 h-4"></i> Save
+                                </button>
+                            </div>
+                            <div id="slack-result" class="text-sm"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+        
+        // Render ICP Config
+        function renderICP() {
+            document.getElementById('page-title').textContent = 'ICP Configuration';
+            document.getElementById('page-subtitle').textContent = 'Define your Ideal Customer Profile for lead scoring';
+            
+            const icp = settings.icp_config || {};
+            
+            document.getElementById('page-content').innerHTML = `
+                <div class="max-w-2xl space-y-6">
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">Target Industries</h3>
+                        <textarea id="icp-industries" rows="3" placeholder="SaaS, Technology, E-commerce (one per line or comma-separated)"
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500">${(icp.industries || []).join(', ')}</textarea>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">Company Size</h3>
+                        <div class="flex gap-4">
+                            <div class="flex-1">
+                                <label class="text-sm text-gray-600">Min Employees</label>
+                                <input type="number" id="icp-min-employees" value="${icp.min_employees || 50}"
+                                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500">
+                            </div>
+                            <div class="flex-1">
+                                <label class="text-sm text-gray-600">Max Employees</label>
+                                <input type="number" id="icp-max-employees" value="${icp.max_employees || 1000}"
+                                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">Target Countries</h3>
+                        <textarea id="icp-countries" rows="2" placeholder="United States, United Kingdom, Canada"
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500">${(icp.countries || []).join(', ')}</textarea>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <h3 class="font-semibold text-gray-800 mb-4">Target Job Titles</h3>
+                        <textarea id="icp-titles" rows="2" placeholder="CEO, CTO, VP Marketing, Head of Growth"
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-500">${(icp.target_titles || []).join(', ')}</textarea>
+                    </div>
+                    
+                    <button onclick="saveICP()" class="w-full px-4 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition font-semibold flex items-center justify-center gap-2">
+                        <i data-lucide="save" class="w-5 h-5"></i> Save ICP Configuration
+                    </button>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+        
+        // Test API
+        async function testAPI(type) {
+            const testDomain = 'notion.so';
+            let apiKey = '';
+            
+            if (type === 'ipinfo') apiKey = document.getElementById('ipinfo-key').value;
+            else if (type === 'apollo') apiKey = document.getElementById('apollo-key').value;
+            else if (type === 'hunter') apiKey = document.getElementById('hunter-key').value;
+            else if (type === 'openai') apiKey = document.getElementById('openai-key').value;
+            else if (type === 'slack') apiKey = document.getElementById('slack-webhook').value;
+            
+            if (!apiKey) {
+                showToast('Please enter an API key first', 'error');
+                return;
+            }
+            
+            document.getElementById(`${type}-result`).innerHTML = '<span class="text-blue-500">Testing...</span>';
+            
+            try {
+                const res = await fetch(`${API_URL}/api/test-api`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_type: type, api_key: apiKey, test_domain: testDomain })
+                });
+                const data = await res.json();
+                
+                if (data.success || data.data) {
+                    document.getElementById(`${type}-result`).innerHTML = `
+                        <span class="text-green-500">✅ ${data.message || 'API Connected Successfully!'}</span>
+                        <pre class="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-40">${JSON.stringify(data.data || data, null, 2)}</pre>
+                    `;
+                    showToast(`${type.toUpperCase()} API connected!`, 'success');
+                } else {
+                    document.getElementById(`${type}-result`).innerHTML = `<span class="text-red-500">❌ Error: ${data.error || 'Unknown error'}</span>`;
+                    showToast(`${type.toUpperCase()} API failed`, 'error');
+                }
+            } catch (e) {
+                document.getElementById(`${type}-result`).innerHTML = `<span class="text-red-500">❌ Error: ${e.message}</span>`;
+            }
+        }
+        
+        // Save API
+        async function saveAPI(type) {
+            let payload = {};
+            
+            if (type === 'ipinfo') payload.ipinfo_api_key = document.getElementById('ipinfo-key').value;
+            else if (type === 'apollo') payload.apollo_api_key = document.getElementById('apollo-key').value;
+            else if (type === 'hunter') payload.hunter_api_key = document.getElementById('hunter-key').value;
+            else if (type === 'openai') payload.openai_api_key = document.getElementById('openai-key').value;
+            else if (type === 'slack') payload.slack_webhook_url = document.getElementById('slack-webhook').value;
+            
+            try {
+                await fetch(`${API_URL}/api/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                showToast(`${type.toUpperCase()} API key saved!`, 'success');
+                await loadSettings();
+            } catch (e) {
+                showToast('Failed to save', 'error');
+            }
+        }
+        
+        // Save ICP
+        async function saveICP() {
+            const icp = {
+                industries: document.getElementById('icp-industries').value.split(/[,\n]/).map(s => s.trim()).filter(Boolean),
+                min_employees: parseInt(document.getElementById('icp-min-employees').value) || 50,
+                max_employees: parseInt(document.getElementById('icp-max-employees').value) || 1000,
+                countries: document.getElementById('icp-countries').value.split(/[,\n]/).map(s => s.trim()).filter(Boolean),
+                target_titles: document.getElementById('icp-titles').value.split(/[,\n]/).map(s => s.trim()).filter(Boolean)
+            };
+            
+            try {
+                await fetch(`${API_URL}/api/settings/icp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(icp)
+                });
+                showToast('ICP configuration saved!', 'success');
+                await loadSettings();
+            } catch (e) {
+                showToast('Failed to save ICP', 'error');
+            }
+        }
+        
+        // Show lead detail
+        async function showLeadDetail(leadId) {
+            try {
+                const res = await fetch(`${API_URL}/api/leads/${leadId}`);
+                const lead = await res.json();
+                
+                const contacts = lead.contacts || [];
+                const matchReasons = lead.match_reasons || [];
+                const intentSignals = lead.intent_signals || [];
+                const talkingPoints = lead.talking_points || [];
+                const emailDraft = lead.email_draft || {};
+                const pagesViewed = lead.pages_viewed || [];
+                
+                document.getElementById('lead-modal-content').innerHTML = `
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="flex items-center gap-4">
+                                <div class="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold ${getTierColor(lead.tier)}">
+                                    ${lead.icp_score || 0}
+                                </div>
+                                <div>
+                                    <h2 class="text-2xl font-bold text-gray-800">${lead.company_name || 'Unknown Company'}</h2>
+                                    <p class="text-gray-500">${lead.domain || ''} • ${lead.industry || 'Unknown'}</p>
+                                </div>
+                            </div>
+                            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                                <i data-lucide="x" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-6">
+                            <!-- Left Column -->
+                            <div class="space-y-4">
+                                <!-- Company Info -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h3 class="font-semibold text-gray-700 mb-3">Company Info</h3>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between"><span class="text-gray-500">Employees:</span><span>${lead.employee_count || 0}</span></div>
+                                        <div class="flex justify-between"><span class="text-gray-500">Country:</span><span>${lead.country || 'Unknown'}</span></div>
+                                        <div class="flex justify-between"><span class="text-gray-500">Funding:</span><span>${lead.funding_stage || 'Unknown'}</span></div>
+                                        <div class="flex justify-between"><span class="text-gray-500">Total Funding:</span><span>$${(lead.total_funding || 0).toLocaleString()}</span></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Contacts -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h3 class="font-semibold text-gray-700 mb-3">Contacts Found (${contacts.length})</h3>
+                                    ${contacts.length === 0 ? '<p class="text-sm text-gray-500">No contacts found</p>' : 
+                                        contacts.map(c => `
+                                            <div class="py-2 border-b last:border-0">
+                                                <p class="font-medium">${c.name || 'Unknown'}</p>
+                                                <p class="text-sm text-gray-500">${c.title || 'No title'}</p>
+                                                <p class="text-sm text-blue-500">${c.email || 'No email'}</p>
+                                            </div>
+                                        `).join('')}
+                                </div>
+                                
+                                <!-- Pages Viewed -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h3 class="font-semibold text-gray-700 mb-3">Pages Viewed</h3>
+                                    <div class="space-y-1">
+                                        ${pagesViewed.map(p => `<div class="text-sm text-gray-600">• ${p.url || p}</div>`).join('')}
+                                    </div>
+                                    <p class="text-sm text-gray-500 mt-2">Duration: ${lead.visit_duration || 0}s</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Right Column -->
+                            <div class="space-y-4">
+                                <!-- Scoring -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h3 class="font-semibold text-gray-700 mb-3">AI Scoring</h3>
+                                    <div class="flex items-center gap-4 mb-4">
+                                        <span class="px-3 py-1 rounded-full text-sm font-medium ${getTierBadge(lead.tier)}">${(lead.tier || 'unknown').toUpperCase()}</span>
+                                        <span class="text-sm text-gray-500">Urgency: ${lead.urgency || 'low'}</span>
+                                    </div>
+                                    
+                                    <div class="space-y-2">
+                                        <div>
+                                            <p class="text-xs text-gray-500 mb-1">Match Reasons:</p>
+                                            ${matchReasons.map(r => `<span class="inline-block bg-green-100 text-green-700 text-xs px-2 py-1 rounded mr-1 mb-1">${r}</span>`).join('')}
+                                        </div>
+                                        <div>
+                                            <p class="text-xs text-gray-500 mb-1">Intent Signals:</p>
+                                            ${intentSignals.map(s => `<span class="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded mr-1 mb-1">${s}</span>`).join('')}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Research Summary -->
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h3 class="font-semibold text-gray-700 mb-3">Research Summary</h3>
+                                    <p class="text-sm text-gray-600">${lead.research_summary || 'No summary available'}</p>
+                                    
+                                    ${talkingPoints.length > 0 ? `
+                                        <div class="mt-3">
+                                            <p class="text-xs text-gray-500 mb-1">Talking Points:</p>
+                                            <ul class="text-sm text-gray-600 list-disc list-inside">
+                                                ${talkingPoints.map(p => `<li>${p}</li>`).join('')}
+                                            </ul>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                
+                                <!-- Email Draft -->
+                                ${emailDraft.subject ? `
+                                    <div class="bg-pink-50 rounded-lg p-4">
+                                        <h3 class="font-semibold text-gray-700 mb-3">📧 Email Draft</h3>
+                                        <p class="text-sm font-medium text-gray-800 mb-2">Subject: ${emailDraft.subject}</p>
+                                        <p class="text-sm text-gray-600 whitespace-pre-line">${emailDraft.body}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 flex gap-3">
+                            <button class="flex-1 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition">
+                                📧 Send Email
+                            </button>
+                            <button class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+                                💼 Add to CRM
+                            </button>
+                            <button onclick="deleteLead('${lead.lead_id}'); closeModal();" class="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('lead-modal').classList.remove('hidden');
+                lucide.createIcons();
+            } catch (e) {
+                showToast('Failed to load lead details', 'error');
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('lead-modal').classList.add('hidden');
+        }
+        
+        // Delete lead
+        async function deleteLead(leadId) {
+            if (!confirm('Are you sure you want to delete this lead?')) return;
+            
+            try {
+                await fetch(`${API_URL}/api/leads/${leadId}`, { method: 'DELETE' });
+                showToast('Lead deleted', 'success');
+                await refreshData();
+            } catch (e) {
+                showToast('Failed to delete lead', 'error');
+            }
+        }
+        
+        // Helper functions
+        function getTierColor(tier) {
+            if (tier === 'hot') return 'bg-red-500';
+            if (tier === 'warm') return 'bg-yellow-500';
+            return 'bg-blue-400';
+        }
+        
+        function getTierBadge(tier) {
+            if (tier === 'hot') return 'bg-red-100 text-red-700';
+            if (tier === 'warm') return 'bg-yellow-100 text-yellow-700';
+            return 'bg-blue-100 text-blue-700';
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500'
+            };
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${colors[type]} text-white px-4 py-2 rounded-lg shadow-lg`;
+            toast.textContent = message;
+            
+            document.getElementById('toast-container').appendChild(toast);
+            
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        // Close modal on outside click
+        document.getElementById('lead-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'lead-modal') closeModal();
+        });
+    </script>
+</body>
+</html>
